@@ -1,0 +1,45 @@
+{
+	"name": "@xevolab/jws-sta",
+	"version": "0.1.0",
+	"description": "Time Stamping Authority (TSA) implementation.",
+	"keywords": [
+		"Timestamping Authority",
+		"TSA",
+		"Digital",
+		"Signatures"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/Xevolab/time-stamping-token.git"
+	},
+	"main": "./dist/cjs/index.js",
+	"module": "./dist/esm/index.js",
+	"exports": {
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/cjs/index.js",
+			"types": "./dist/types/index.d.ts"
+		},
+		"./schemas/*": "./src/schemas/*"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"lint": "eslint src",
+		"build": "rm -rf ./dist && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json"
+	},
+	"author": "Xevolab",
+	"license": "MIT",
+	"dependencies": {
+		"asn1js": "^3.0.5"
+	},
+	"devDependencies": {
+		"@types/chai": "^4.3.11",
+		"@types/node": "^20.3.1",
+		"chai": "^4.3.10",
+		"eslint": "^8.42.0",
+		"eslint-config-airbnb-base": "^15.0.0",
+		"typescript": "^5.1.3"
+	}
+}
