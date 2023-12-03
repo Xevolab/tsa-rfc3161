@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-01 11:22
  * Edited by : Francesco
- * Edited at : 2023-12-02 14:49
+ * Edited at : 2023-12-02 20:10
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -51,7 +51,7 @@ export default function TSA(
 
 		tsaName?: string,
 	}
-): TSAResponse {
+): Buffer {
 
 	// --> Validating payload
 
@@ -241,7 +241,7 @@ export default function TSA(
 			// status
 			new asn1js.Integer({ value: 0 }),
 			// statusString
-			// new asn1js.Sequence({ value: [new asn1js.Utf8String({ value: "Granted" })] }),
+			new asn1js.Sequence({ value: [new asn1js.Utf8String({ value: "Granted" })] }),
 			// failInfo
 			// new asn1js.BitString({ valueHex: new ArrayBuffer(1) }),
 		]
@@ -466,7 +466,7 @@ export default function TSA(
 										new asn1js.Sequence({
 											value: [
 												new asn1js.ObjectIdentifier({
-													value: "1.2.840.113549.1.1.1"
+													value: "1.2.840.113549.1.1.1" // rsaEncryption
 												}),
 												new asn1js.Null()
 											]
@@ -489,62 +489,7 @@ export default function TSA(
 			})]
 	}));
 
-	console.log(Buffer.from(TimeStampResp.toBER(false)).toString("hex"));
-
-	return {
-		status: {
-			status: 0,
-			statusString: "Granted",
-		},
-		timeStampToken: {
-			version: 2,
-			policy: "",
-			messageImprint: {
-				hashAlgorithm,
-				hashedMessage
-			},
-			serialNumber: randomBytes(16).toString("hex"),
-			genTime: (new Date()).toISOString().replace(/\..+/, ""),
-			nonce: nonce || undefined,
-			accuracy: {
-				micros: 0,
-				millis: 0,
-				seconds: 0
-			},
-			ordering: false,
-			extensions: [],
-			tsa: "",
-		},
-		token: Buffer.from(TimeStampResp.toBER(false)).toString("hex")
-	};
-}
-
-export type TSAResponse = {
-	status: {
-		status: number,
-		statusString?: string,
-		failInfo?: string
-	},
-	timeStampToken: {
-		version: number,
-		messageImprint: {
-			hashAlgorithm: string,
-			hashedMessage: string
-		},
-		serialNumber: string,
-		genTime: string,
-		nonce?: number,
-		accuracy?: {
-			micros: number,
-			millis: number,
-			seconds: number
-		},
-		ordering: boolean,
-		policy: string,
-		extensions?: any[],
-		tsa?: string,
-	},
-	token: string
+	return Buffer.from(TimeStampResp.toBER(false));
 }
 
 function keyForAlg(key: KeyObject): KeyObject | SignKeyObjectInput {
