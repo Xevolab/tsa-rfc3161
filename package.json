@@ -1,6 +1,6 @@
 {
 	"name": "@xevolab/timestamping-token",
-	"version": "0.1.1",
+	"version": "1.0.0",
 	"description": "Time Stamping Authority (TSA) implementation.",
 	"keywords": [
 		"Timestamping Authority",

@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-10 09:58
+ * Edited at : 2023-12-10 10:13
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -41,7 +41,7 @@ export class TimeStampReq {
 		this.request = request;
 
 		// Validating the request object
-		if (request.version !== 1 && request.version !== 2) throw new Error("Invalid request; version must be 1 or 2.");
+		if (request.version !== 1) throw new Error("Invalid request; version must be 1.");
 
 		if (!request.messageImprint) throw new Error("Invalid request; messageImprint is required.");
 		if (!request.messageImprint.hashAlgorithm) throw new Error("Invalid request; messageImprint.hashAlgorithm is required.");

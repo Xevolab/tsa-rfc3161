@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-10 09:49
+ * Edited at : 2023-12-10 10:06
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -17,6 +17,8 @@ export class TimeStampResp {
 	// Parameters
 	public hashedMessage: Buffer | string;
 	public hashAlgorithm: string;
+	public version?: number;
+	public reqPolicy?: string;
 	public nonce?: number | Buffer | Uint8Array;
 	public certReq?: boolean;
 
@@ -43,6 +45,8 @@ export class TimeStampResp {
 	constructor(hashedMessage: string | Buffer, {
 		hashAlgorithm,
 
+		version,
+		reqPolicy,
 		nonce,
 		certReq,
 
@@ -53,6 +57,8 @@ export class TimeStampResp {
 	}: {
 		hashAlgorithm: string,
 
+		version?: number,
+		reqPolicy?: string,
 		nonce?: number | Buffer | Uint8Array,
 		certReq?: boolean,
 
@@ -63,6 +69,9 @@ export class TimeStampResp {
 	}) {
 		this.hashedMessage = hashedMessage;
 		this.hashAlgorithm = hashAlgorithm;
+
+		this.version = version || 2;
+		this.reqPolicy = reqPolicy;
 		this.nonce = nonce;
 		this.certReq = certReq;
 
@@ -78,7 +87,7 @@ export class TimeStampResp {
 
 		// --> Validating payload
 
-		let { hashAlgorithm, nonce, certReq, key, certs, hashedMessage } = this;
+		let { hashAlgorithm, key, certs, hashedMessage } = this;
 
 		/**
 		 * hashAlgorithm must be a string that rappresent the hash algorithm used to hash the message
@@ -113,7 +122,7 @@ export class TimeStampResp {
 
 		/**
 		 * TSTInfo ::= SEQUENCE  {
-		 *   version                      INTEGER  { v1(1) },
+		 *   version                      INTEGER  { v1(1), v2(2) },
 		 *   policy                       TSAPolicyId,
 		 *   messageImprint               MessageImprint,
 		 *     -- MUST have the same value as the similar field in
@@ -134,13 +143,15 @@ export class TimeStampResp {
 		const payload = new asn1js.Sequence({
 			value: [
 				// version
+				// TODO: support v1 and get version from request
+				// NOTE: is it really needed?
 				new asn1js.Integer({ value: 2 }),
 
 				/**
 				 * TSAPolicyId ::= OBJECT IDENTIFIER
 				 * The policy identifier for the time stamping service, as defined in RFC 3161.
 				 */
-				new asn1js.ObjectIdentifier({ value: "1.2.3.4.1" }),
+				new asn1js.ObjectIdentifier({ value: this.reqPolicy }),
 
 				/**
 				 * MessageImprint ::= SEQUENCE  {
@@ -204,9 +215,9 @@ export class TimeStampResp {
 				 *
 				 * Insert number as
 				 */
-				...(nonce ? [new asn1js.Integer(
+				...(this.nonce ? [new asn1js.Integer(
 					{
-						valueHex: nonce instanceof Buffer ? nonce : Buffer.from(nonce.toString(16), "hex")
+						valueHex: this.nonce instanceof Buffer ? this.nonce : Buffer.from(this.nonce.toString(16), "hex")
 					}
 				)] : []),
 
@@ -388,7 +399,7 @@ export class TimeStampResp {
 							 *
 							 * Certificate ::= SIGNED{TBSCertificate}
 							*/
-							...(certReq ? [new asn1js.Constructed({
+							...(this.certReq ? [new asn1js.Constructed({
 								idBlock: { tagClass: 3, tagNumber: 0 },
 								// @ts-ignore
 								value: certs.map(c => new asn1js.Sequence({
@@ -604,6 +615,8 @@ function getSignedAttributes(messageHash: string, signingTime: Date, certs: X509
 				attrValues SET OF AttributeValue
 			}
 		*/
+		// NOTE: this is what would need to be created different in v1 or v2
+		//       v1 does not support ESSCertIDv2
 		new asn1js.Sequence({
 			value: [
 				new asn1js.ObjectIdentifier({
