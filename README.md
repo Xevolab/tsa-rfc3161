@@ -45,14 +45,14 @@ A TimeStampReq can be generated using a more convenient JSON object using the `T
 import {TimeStampReq} from "@xevolab/timestamp-token";
 
 const tsq = new TimeStampReq({
-	version: 1,
-	messageImprint: {
-		hashAlgorithm: "sha256",
-		hashedMessage: "012ABCDEF..."|Buffer
-	},
-	policy: "",    // optional
-	nonce: 0,      // optional
-	certReq: false // optional
+   version: 1,
+   messageImprint: {
+      hashAlgorithm: "sha256",
+      hashedMessage: "012ABCDEF..."|Buffer
+   },
+   policy: "",    // optional
+   nonce: 0,      // optional
+   certReq: false // optional
 });
 ```
 
@@ -67,10 +67,10 @@ import {TimeStampReq, TimeStampResp} from "@xevolab/timestamp-token";
 
 const tsq = new TimeStampReq().fromDER(buffer);
 const tsr = tsq.sign({
-	// The private key used to sign the response
-	key: KeyObject,
-	// Array of X509Certificate objects where the first one is the signer certificate
-	certs: X509Certificate[],
+   // The private key used to sign the response
+   key: KeyObject,
+   // Array of X509Certificate objects where the first one is the signer certificate
+   certs: X509Certificate[],
 });
 ```
 
@@ -84,23 +84,23 @@ A TimeStampResp can be created without a TimeStampReq using the `TimeStampResp` 
 import {TimeStampResp} from "@xevolab/timestamp-token";
 
 const resp = new TimeStampResp(
-	hashedMessage: string | Buffer,
-	{
-		// Hash algorithm used to hash the message
-		hashAlgorithm: "SHA256"|"SHA384"|"SHA512",
+   hashedMessage: string | Buffer,
+   {
+      // Hash algorithm used to hash the message
+      hashAlgorithm: "SHA256"|"SHA384"|"SHA512",
 
-		nonce: number | Buffer, // optional
-		certReq: boolean,       // optional
+      nonce: number | Buffer, // optional
+      certReq: boolean,       // optional
 
-		key: KeyObject,
-		certs: X509Certificate[],
+      key: KeyObject,
+      certs: X509Certificate[],
 
-		// Additional optional parameters for the signing process
-		signingOptions: {
-			// Signing options
-			signingHashAlgorithm: "SHA256"|"SHA384"|"SHA512",
-		}
-	}
+      // Additional optional parameters for the signing process
+      signingOptions: {
+         // Signing options
+         signingHashAlgorithm: "SHA256"|"SHA384"|"SHA512",
+      }
+   }
 );
 ```
 
@@ -173,9 +173,9 @@ import { createPrivateKey } from "crypto";
 import fs from "fs";
 
 const key = createPrivateKey({
-	key: fs.readFileSync("private.key.pem", "ascii"),
-	format: "pem",
-	type: "pkcs1"
+   key: fs.readFileSync("private.key.pem", "ascii"),
+   format: "pem",
+   type: "pkcs1"
 });
 const certs = parseCerts(fs.readFileSync("cert.chain.crt", "ascii"));
 
@@ -185,8 +185,8 @@ const certs = parseCerts(fs.readFileSync("cert.chain.crt", "ascii"));
 const tsq = new TimeStampReq().fromDER(fs.readFileSync("file.tsq"));
 
 const tsr = tsq.sign({
-	key,
-	certs,
+   key,
+   certs,
 });
 
 const tsrBuffer = tsr.buffer;
@@ -195,9 +195,9 @@ const tsrBuffer = tsr.buffer;
 // From a JSON object
 
 const tsr2 = new TimeStampResp("42191cda4fea645078d6e14e311dfa4bbd04f154fbbe9376e8a3833242cd5c03", {
-	hashAlgorithm: "SHA256",
-	key,
-	certs
+   hashAlgorithm: "SHA256",
+   key,
+   certs
 });
 
 const tsr2Buffer = tsr2.buffer;
