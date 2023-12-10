@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-09 23:23
+ * Edited at : 2023-12-10 09:49
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -39,8 +39,6 @@ export class TimeStampResp {
 	 * @param   {string}           hashAlgorithm  The hash algorithm used to hash the message
 	 * @param   {number | Buffer | Uint8Array}  nonce          The nonce
 	 * @param   {boolean}          certReq        Whether to include the certificate chain in the response
-	 *
-	 * @return  {TimeStampResp}                   The instance of TimeStampResp
 	 */
 	constructor(hashedMessage: string | Buffer, {
 		hashAlgorithm,
@@ -136,7 +134,7 @@ export class TimeStampResp {
 		const payload = new asn1js.Sequence({
 			value: [
 				// version
-				new asn1js.Integer({ value: 1 }),
+				new asn1js.Integer({ value: 2 }),
 
 				/**
 				 * TSAPolicyId ::= OBJECT IDENTIFIER

@@ -56,6 +56,8 @@ const tsq = new TimeStampReq({
 });
 ```
 
+The `TimeStampReq` constructor returns a `TimeStampReq` object. The `buffer` property of the `TimeStampReq` object contains the DER-encoded request.
+
 ## TimeStampResp
 
 ### Creating a response from a TimeStampReq
