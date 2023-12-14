@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-13 20:41
+ * Edited at : 2023-12-14 15:43
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -30,6 +30,7 @@ export class TimeStampResp {
 	public signingTime!: Date;
 	public serialNumber!: Buffer;
 	public buffer!: Buffer;
+	private asn1!: asn1js.Sequence;
 
 	// Signature
 	public payloadDigest?: Buffer;
@@ -552,19 +553,23 @@ export class TimeStampResp {
 				})]
 		}));
 
+		this.asn1 = TimeStampResp;
 		return Buffer.from(TimeStampResp.toBER(false));
 	}
 
 	public setSignature(signature: Buffer) {
-		const tmp = asn1js.fromBER(this.buffer);
 		// @ts-ignore
-		let ref = tmp.result.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value;
-		ref = ref.at(-1).valueBlock.value[0].valueBlock.value.at(-1);
-		console.log(Buffer.from(ref.valueBlock.valueHexView));
+		const index1 = this.asn1.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value.length - 1;
+		// @ts-ignore
+		const index2 = this.asn1.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value[index1].valueBlock.value[0].valueBlock.value.length - 1;
 
-		ref.valueBlock.valueHexView = signature
+		// @ts-ignore
+		this.asn1.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value[index1].valueBlock.value[0].valueBlock.value[index2] = new asn1js.OctetString({
+			valueHex: signature
+		});
 
-		this.buffer = Buffer.from(tmp.result.toBER(false));
+		this.buffer = Buffer.from(this.asn1.toBER(false));
+
 	}
 
 }
