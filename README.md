@@ -101,9 +101,29 @@ const resp = new TimeStampResp(
       signingOptions: {
          // Signing options
          signingHashAlgorithm: "SHA256"|"SHA384"|"SHA512",
+
+			// Enable external signatures
+			externalSignature: boolean
       }
    }
 );
+```
+
+### External signatures
+
+The `externalSignature` option can be used to enable external signatures. When this option is enabled, the `sign` method will not sign the response.
+
+```javascript
+const tsr = new TimeStampResp({
+	...,
+	signingOptions: {
+		externalSignature: true
+	}
+});
+
+const signature = Buffer.from("0123456789abcdef", "hex");
+
+tsr.setSignature(signature);
 ```
 
 The `TimeStampResp` constructor returns an instance of `TimeStampResp`.

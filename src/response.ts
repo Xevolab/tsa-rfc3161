@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-10 10:06
+ * Edited at : 2023-12-13 20:41
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -23,13 +23,17 @@ export class TimeStampResp {
 	public certReq?: boolean;
 
 	// Credentials
-	private key: KeyObject;
+	private key?: KeyObject;
 	public certs?: X509Certificate[];
 
 	// Response
 	public signingTime!: Date;
 	public serialNumber!: Buffer;
 	public buffer!: Buffer;
+
+	// Signature
+	public payloadDigest?: Buffer;
+	public signedDigest?: Buffer;
 
 	/**
 	 * Creates an instance of TimeStampResp.
@@ -62,7 +66,7 @@ export class TimeStampResp {
 		nonce?: number | Buffer | Uint8Array,
 		certReq?: boolean,
 
-		key: KeyObject,
+		key?: KeyObject,
 		certs?: X509Certificate[],
 
 		signingOptions?: SignOptions,
@@ -70,8 +74,8 @@ export class TimeStampResp {
 		this.hashedMessage = hashedMessage;
 		this.hashAlgorithm = hashAlgorithm;
 
-		this.version = version || 2;
-		this.reqPolicy = reqPolicy;
+		this.version = version || 1;
+		this.reqPolicy = reqPolicy || "1.2.3.4";
 		this.nonce = nonce;
 		this.certReq = certReq;
 
@@ -110,7 +114,8 @@ export class TimeStampResp {
 
 		// --> Loading the key(s)
 
-		if (!key || !(key instanceof KeyObject)) throw new Error("Invalid key; needs to be a KeyObject.");
+		if (key && !(key instanceof KeyObject)) throw new Error("Invalid key; needs to be a KeyObject.");
+		if (!key && !opts?.externalSignature) throw new Error("Missing key. Please, provide a key or enable external signature function.");
 
 		// --> Loading the certificates
 
@@ -145,7 +150,7 @@ export class TimeStampResp {
 				// version
 				// TODO: support v1 and get version from request
 				// NOTE: is it really needed?
-				new asn1js.Integer({ value: 2 }),
+				new asn1js.Integer({ value: this.version }),
 
 				/**
 				 * TSAPolicyId ::= OBJECT IDENTIFIER
@@ -244,15 +249,24 @@ export class TimeStampResp {
 			]
 		});
 
-		const messageDigest = createHash("SHA-512").update(Buffer.from(payload.toBER(false))).digest("hex");
+		this.payloadDigest = createHash(signingHashAlgorithm).update(Buffer.from(payload.toBER(false))).digest();
 
 		// --> Generating the signature
 
 		// The signature is generated using the private key of the TSA, by signing the DER encoded
 		// payload and, if present, the signed attributes.
-		const signature = sign("SHA512", Buffer.from((new asn1js.Set({
-			value: getSignedAttributes(messageDigest, this.signingTime, certs),
-		}).toBER(false))), keyForAlg(key));
+		let signature = Buffer.from((new asn1js.Set({
+			value: getSignedAttributes(this.payloadDigest, this.signingTime, certs),
+		}).toBER(false)));
+		this.signedDigest = createHash(signingHashAlgorithm).update(signature).digest()
+
+		// If the signature is generated using an external signer, the signature is filled with only
+		// the hash of the payload.
+		if (opts?.externalSignature || !key) {
+			signature = Buffer.from("00", "hex");
+		} else {
+			signature = sign(signingHashAlgorithm, signature, keyForAlg(key));
+		}
 
 		/**
 		 * TimeStampResp ::= SEQUENCE  {
@@ -506,7 +520,7 @@ export class TimeStampResp {
 											 */
 											new asn1js.Constructed({
 												idBlock: { tagClass: 3, tagNumber: 0 },
-												value: getSignedAttributes(messageDigest, this.signingTime, certs),
+												value: getSignedAttributes(this.payloadDigest, this.signingTime, certs),
 											}),
 
 											/**
@@ -525,7 +539,7 @@ export class TimeStampResp {
 											 * SignatureValue ::= OCTET STRING
 											 */
 											new asn1js.OctetString({
-												valueHex: signature.buffer
+												valueHex: signature
 											}),
 
 										]
@@ -541,10 +555,24 @@ export class TimeStampResp {
 		return Buffer.from(TimeStampResp.toBER(false));
 	}
 
+	public setSignature(signature: Buffer) {
+		const tmp = asn1js.fromBER(this.buffer);
+		// @ts-ignore
+		let ref = tmp.result.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value;
+		ref = ref.at(-1).valueBlock.value[0].valueBlock.value.at(-1);
+		console.log(Buffer.from(ref.valueBlock.valueHexView));
+
+		ref.valueBlock.valueHexView = signature
+
+		this.buffer = Buffer.from(tmp.result.toBER(false));
+	}
+
 }
 
-type SignOptions = {
-	signingHashAlgorithm: "SHA512",
+export type SignOptions = {
+	signingHashAlgorithm?: "SHA256" | "SHA384" | "SHA512",
+
+	externalSignature?: boolean
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -561,7 +589,7 @@ function keyForAlg(key: KeyObject): KeyObject | SignKeyObjectInput {
 	throw new TypeError(`key is is not supported`);
 }
 
-function getSignedAttributes(messageHash: string, signingTime: Date, certs: X509Certificate[] = []) {
+function getSignedAttributes(messageHash: Buffer, signingTime: Date, certs: X509Certificate[] = []) {
 	return [
 		// contentType
 		new asn1js.Sequence({
@@ -601,7 +629,7 @@ function getSignedAttributes(messageHash: string, signingTime: Date, certs: X509
 				}),
 				new asn1js.Set({
 					value: [
-						new asn1js.OctetString({ valueHex: Buffer.from(messageHash, "hex") })
+						new asn1js.OctetString({ valueHex: messageHash })
 					]
 				})
 			]

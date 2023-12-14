@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-10 10:13
+ * Edited at : 2023-12-13 20:20
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -11,7 +11,7 @@ import * as asn1js from "asn1js";
 import { KeyObject, X509Certificate } from "crypto";
 
 import { hashAlgIdentifier, hashAlgOID, parseOID } from "./parseOID";
-import { TimeStampResp } from "./response";
+import { TimeStampResp, SignOptions } from "./response";
 
 export type RequestObject = {
 	version: number,
@@ -151,9 +151,9 @@ export class TimeStampReq {
 	}
 
 	sign(params: {
-		key: KeyObject,
+		key?: KeyObject,
 		certs?: X509Certificate[],
-	}): TimeStampResp {
+	}, signingOptions?: SignOptions): TimeStampResp {
 		if (!this.request) throw new Error("Request not initialized.");
 
 		return new TimeStampResp(this.request.messageImprint.hashedMessage, {
@@ -161,8 +161,10 @@ export class TimeStampReq {
 			nonce: this.request.nonce,
 			certReq: this.request.certReq,
 
-			key: params.key,
+			key: params.key || undefined,
 			certs: params.certs,
+
+			signingOptions
 		});
 	}
 
