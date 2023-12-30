@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-13 20:20
+ * Edited at : 2023-12-30 15:30
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -81,7 +81,7 @@ export class TimeStampReq {
 				}),
 				...(request.reqPolicy ? [new asn1js.ObjectIdentifier({ value: request.reqPolicy })] : []),
 				// @ts-ignore
-				...(request.nonce ? [new asn1js.Integer({ valueHex: request.nonce })] : []),
+				...(request.nonce ? [asn1js.Integer.fromBigInt("0x" + request.nonce.toString("hex"))] : []),
 				...(request.certReq ? [new asn1js.Boolean({ value: request.certReq })] : []),
 				// ...(request.extensions ? [new asn1js.Sequence({ value: request.extensions })] : []),
 			]
@@ -136,7 +136,7 @@ export class TimeStampReq {
 			// @ts-ignore
 			reqPolicy: r.result.valueBlock.value[2].idBlock.tagNumber === 6 ? parseOID(r.result.valueBlock.value[i++].valueBeforeDecodeView) : null,
 			// @ts-ignore
-			nonce: r.result.valueBlock.value[i]?.idBlock.tagNumber === 2 ? Buffer.from(r.result.valueBlock.value[i++].valueBlock.valueHexView) : undefined,
+			nonce: r.result.valueBlock.value[i]?.idBlock.tagNumber === 2 ? Buffer.from(r.result.valueBlock.value[i++].valueBlock.valueHexView.slice(-8)) : undefined,
 			// @ts-ignore
 			certReq: r.result.valueBlock.value[i]?.idBlock.tagNumber === 1 ? r.result.valueBlock.value[i++].valueBlock.value : false,
 			// @ts-ignore
