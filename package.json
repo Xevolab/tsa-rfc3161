@@ -28,7 +28,8 @@
 	],
 	"scripts": {
 		"lint": "eslint src",
-		"build": "rm -rf ./dist && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json"
+		"build": "rm -rf ./dist && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
+		"test": "ts-node test/test.ts"
 	},
 	"author": "Xevolab",
 	"license": "MIT",
