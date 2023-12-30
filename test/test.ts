@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-09-24 09:53
  * Edited by : Francesco
- * Edited at : 2023-12-30 15:33
+ * Edited at : 2023-12-30 15:42
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -128,7 +128,7 @@ function randomFile(): void {
 
 	const content = randomBytes(32).toString("hex");
 
-	fs.writeFileSync("random.txt", content);
+	fs.writeFileSync(__dirname + "/random.txt", content);
 }
 
 /*(() => {
