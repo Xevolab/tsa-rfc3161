@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-14 15:43
+ * Edited at : 2023-12-31 12:28
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -124,7 +124,7 @@ export class TimeStampResp {
 		if (certs.length === 0) throw new Error("Invalid certs; needs to be an array with at least one element.");
 
 		this.signingTime = new Date();
-		this.serialNumber = randomBytes(4)
+		this.serialNumber = randomBytes(6)
 
 		/**
 		 * TSTInfo ::= SEQUENCE  {
@@ -183,7 +183,7 @@ export class TimeStampResp {
 				/**
 				 * CertificateSerialNumber ::= INTEGER
 				 */
-				new asn1js.Integer({ valueHex: this.serialNumber }),
+				asn1js.Integer.fromBigInt("0x" + this.serialNumber.toString("hex")),
 
 				/**
 				 * GeneralizedTime ::= CHOICE {

@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-30 15:30
+ * Edited at : 2024-01-03 10:43
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -153,6 +153,7 @@ export class TimeStampReq {
 	sign(params: {
 		key?: KeyObject,
 		certs?: X509Certificate[],
+
 	}, signingOptions?: SignOptions): TimeStampResp {
 		if (!this.request) throw new Error("Request not initialized.");
 
@@ -160,6 +161,8 @@ export class TimeStampReq {
 			hashAlgorithm: this.request.messageImprint.hashAlgorithm,
 			nonce: this.request.nonce,
 			certReq: this.request.certReq,
+
+			reqPolicy: this.request.reqPolicy || undefined,
 
 			key: params.key || undefined,
 			certs: params.certs,
