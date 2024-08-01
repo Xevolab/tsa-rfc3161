@@ -1,11 +1,13 @@
 /*
- * Author    : Francesco
- * Created at: 2023-12-09 17:52
- * Edited by : Francesco
- * Edited at : 2024-01-03 10:43
- *
- * Copyright (c) 2023 Xevolab S.R.L.
- */
+* Author    : Francesco
+* Created at: 2023-12-09 17:52
+* Edited by : Francesco
+* Edited at : 2024-07-31 19:28
+*
+* Copyright (c) 2023 Xevolab S.R.L.
+*/
+/* eslint-disable no-underscore-dangle */
+/* eslint-disable max-len */
 
 import * as asn1js from "asn1js";
 import { KeyObject, X509Certificate } from "crypto";
@@ -26,8 +28,8 @@ export type RequestObject = {
 };
 
 export class TimeStampReq {
-
 	public buffer?: Buffer;
+
 	public request?: RequestObject;
 
 	/**
@@ -47,7 +49,7 @@ export class TimeStampReq {
 		if (!request.messageImprint.hashAlgorithm) throw new Error("Invalid request; messageImprint.hashAlgorithm is required.");
 		request.messageImprint.hashAlgorithm = request.messageImprint.hashAlgorithm.toUpperCase().replaceAll("-", "");
 		const hashAlgs = ["SHA256", "SHA384", "SHA512"];
-		if (!hashAlgs.includes(request.messageImprint.hashAlgorithm)) throw new Error("Invalid hashAlgorithm; needs to be one of " + hashAlgs.join(", ") + ".");
+		if (!hashAlgs.includes(request.messageImprint.hashAlgorithm)) throw new Error(`Invalid hashAlgorithm; needs to be one of ${hashAlgs.join(", ")}.`);
 		if (!request.messageImprint.hashedMessage) throw new Error("Invalid request; messageImprint.hashedMessage is required.");
 		if (!Buffer.isBuffer(request.messageImprint.hashedMessage)) throw new Error("Invalid request; messageImprint.hashedMessage needs to be a valid buffer.");
 
@@ -57,8 +59,7 @@ export class TimeStampReq {
 		// request.nonce is optional but if present it needs to be a valid buffer or a number
 		if (request.nonce) {
 			if (typeof request.nonce === "number") request.nonce = Buffer.from(request.nonce.toString(16), "hex");
-			if (!Buffer.isBuffer(request.nonce))
-				throw new Error("Invalid request; nonce needs to be a valid buffer or number.");
+			if (!Buffer.isBuffer(request.nonce)) throw new Error("Invalid request; nonce needs to be a valid buffer or number.");
 		}
 
 		// request.certReq is optional but if present it needs to be a boolean
@@ -72,7 +73,9 @@ export class TimeStampReq {
 					value: [
 						new asn1js.Sequence({
 							value: [
-								new asn1js.ObjectIdentifier({ value: hashAlgOID[request.messageImprint.hashAlgorithm] }),
+								new asn1js.ObjectIdentifier({
+									value: hashAlgOID[request.messageImprint.hashAlgorithm],
+								}),
 								new asn1js.Null(),
 							],
 						}),
@@ -80,13 +83,12 @@ export class TimeStampReq {
 					],
 				}),
 				...(request.reqPolicy ? [new asn1js.ObjectIdentifier({ value: request.reqPolicy })] : []),
-				// @ts-ignore
-				...(request.nonce ? [asn1js.Integer.fromBigInt("0x" + request.nonce.toString("hex"))] : []),
+				// @ts-expect-error toString errors IDK
+				...(request.nonce ? [asn1js.Integer.fromBigInt(`0x${request.nonce.toString("hex")}`)] : []),
 				...(request.certReq ? [new asn1js.Boolean({ value: request.certReq })] : []),
 				// ...(request.extensions ? [new asn1js.Sequence({ value: request.extensions })] : []),
-			]
+			],
 		}).toBER(false));
-
 	}
 
 	/**
@@ -123,29 +125,27 @@ export class TimeStampReq {
 		let i = 2;
 
 		this.request = {
-			// @ts-ignore
+			// @ts-expect-error Should not be accessed directly
 			version: r.result.valueBlock.value[0].valueBlock._valueDec,
-			// @ts-ignore
 			messageImprint: {
-				// @ts-ignore
 				// Parse OID from BER
+				// @ts-expect-error Should not be accessed directly
 				hashAlgorithm: parseOID(r.result.valueBlock.value[1].valueBlock.value[0].valueBlock.value[0].valueBlock.value.map((i: any) => i.valueDec)),
-				// @ts-ignore
+				// @ts-expect-error Should not be accessed directly
 				hashedMessage: Buffer.from(r.result.valueBlock.value[1].valueBlock.value[1].valueBlock.valueHexView),
 			},
-			// @ts-ignore
+			// @ts-expect-error Should not be accessed directly
 			reqPolicy: r.result.valueBlock.value[2].idBlock.tagNumber === 6 ? parseOID(r.result.valueBlock.value[i++].valueBeforeDecodeView) : null,
-			// @ts-ignore
+			// @ts-expect-error Should not be accessed directly
 			nonce: r.result.valueBlock.value[i]?.idBlock.tagNumber === 2 ? Buffer.from(r.result.valueBlock.value[i++].valueBlock.valueHexView.slice(-8)) : undefined,
-			// @ts-ignore
+			// @ts-expect-error Should not be accessed directly
 			certReq: r.result.valueBlock.value[i]?.idBlock.tagNumber === 1 ? r.result.valueBlock.value[i++].valueBlock.value : false,
-			// @ts-ignore
+			// @ts-expect-error extensions
 			extensions: r.result.valueBlock.value[i]?.idBlock.tagCLass === 0 && r.result.valueBlock.value[i].idBlock.tagNumber === 0 ? r.result.valueBlock.value[i++].valueBlock.value : null,
 		};
 
 		// Convert hashAlgorithm from OID to identifier
-		if (this.request && this.request.messageImprint)
-			this.request.messageImprint.hashAlgorithm = hashAlgIdentifier[this.request.messageImprint.hashAlgorithm];
+		if (this.request && this.request.messageImprint) this.request.messageImprint.hashAlgorithm = hashAlgIdentifier[this.request.messageImprint.hashAlgorithm];
 
 		return this;
 	}
@@ -167,8 +167,7 @@ export class TimeStampReq {
 			key: params.key || undefined,
 			certs: params.certs,
 
-			signingOptions
+			signingOptions,
 		});
 	}
-
-};
+}

@@ -2,18 +2,31 @@
  * Author    : Francesco
  * Created at: 2023-12-09 17:52
  * Edited by : Francesco
- * Edited at : 2023-12-31 12:28
+ * Edited at : 2024-07-31 19:56
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
+/* eslint-disable max-len */
+/* eslint-disable lines-between-class-members */
 
-import { KeyObject, SignKeyObjectInput, X509Certificate, sign, randomBytes, createHash } from "crypto";
+import {
+	KeyObject, X509Certificate, sign, randomBytes, createHash,
+} from "crypto";
 import * as asn1js from "asn1js";
 
 import { hashAlgOID } from "./parseOID";
+import {
+	keyForAlg, getSignedAttributes,
+	getCertificateIssuerASNSequence, getCertificateSubjectASNSequence,
+} from "./responseUtils";
+
+export type SignOptions = {
+	signingHashAlgorithm?: "SHA256" | "SHA384" | "SHA512",
+
+	externalSignature?: boolean
+}
 
 export class TimeStampResp {
-
 	// Parameters
 	public hashedMessage: Buffer | string;
 	public hashAlgorithm: string;
@@ -40,12 +53,12 @@ export class TimeStampResp {
 	 * Creates an instance of TimeStampResp.
 	 * This class is used to generate a response
 	 *
-	 * @param   {string | Buffer}  hashedMessage  The hashed message
+	 * @param   {string|Buffer}  hashedMessage  The hashed message
 	 * @param   {KeyObject}        key            The private key of the TSA
 	 * @param   {X509Certificate[]}  certs          The certificate chain of the TSA
 	 * @param   {string}           hashAlgorithm  The hash algorithm used to hash the message
-	 * @param   {number | Buffer | Uint8Array}  nonce          The nonce
-	 * @param   {boolean}          certReq        Whether to include the certificate chain in the response
+	 * @param   {number|Buffer|Uint8Array}  nonce          The nonce
+	 * @param   {boolean}          certReq        Whether to include the certificate chain in the res
 	 */
 	constructor(hashedMessage: string | Buffer, {
 		hashAlgorithm,
@@ -87,12 +100,12 @@ export class TimeStampResp {
 	}
 
 	public sign(opts?: SignOptions): Buffer {
-
 		const { signingHashAlgorithm = "SHA512" } = opts || {};
 
 		// --> Validating payload
 
-		let { hashAlgorithm, key, certs, hashedMessage } = this;
+		const { key, certs } = this;
+		let { hashAlgorithm, hashedMessage } = this;
 
 		/**
 		 * hashAlgorithm must be a string that rappresent the hash algorithm used to hash the message
@@ -102,7 +115,7 @@ export class TimeStampResp {
 
 		hashAlgorithm = hashAlgorithm.toUpperCase().replaceAll("-", "");
 		const hashAlgs = ["SHA256", "SHA384", "SHA512"];
-		if (!hashAlgs.includes(hashAlgorithm)) throw new Error("Invalid hashAlgorithm; needs to be one of " + hashAlgs.join(", ") + ".");
+		if (!hashAlgs.includes(hashAlgorithm)) throw new Error(`Invalid hashAlgorithm; needs to be one of ${hashAlgs.join(", ")}.`);
 
 		/**
 		 * hashedMessage must be a Buffer or a hex string that rappresent the hashed message
@@ -124,7 +137,7 @@ export class TimeStampResp {
 		if (certs.length === 0) throw new Error("Invalid certs; needs to be an array with at least one element.");
 
 		this.signingTime = new Date();
-		this.serialNumber = randomBytes(6)
+		this.serialNumber = randomBytes(6);
 
 		/**
 		 * TSTInfo ::= SEQUENCE  {
@@ -170,20 +183,20 @@ export class TimeStampResp {
 						new asn1js.Sequence({
 							value: [
 								new asn1js.ObjectIdentifier({
-									value: hashAlgOID[hashAlgorithm]
+									value: hashAlgOID[hashAlgorithm],
 								}),
-								new asn1js.Null()
-							]
+								new asn1js.Null(),
+							],
 						}),
 						// hashedMessage
-						new asn1js.OctetString({ valueHex: hashedMessage })
-					]
+						new asn1js.OctetString({ valueHex: hashedMessage }),
+					],
 				}),
 
 				/**
 				 * CertificateSerialNumber ::= INTEGER
 				 */
-				asn1js.Integer.fromBigInt("0x" + this.serialNumber.toString("hex")),
+				asn1js.Integer.fromBigInt(`0x${this.serialNumber.toString("hex")}`),
 
 				/**
 				 * GeneralizedTime ::= CHOICE {
@@ -223,8 +236,8 @@ export class TimeStampResp {
 				 */
 				...(this.nonce ? [new asn1js.Integer(
 					{
-						valueHex: this.nonce instanceof Buffer ? this.nonce : Buffer.from(this.nonce.toString(16), "hex")
-					}
+						valueHex: this.nonce instanceof Buffer ? this.nonce : Buffer.from(this.nonce.toString(16), "hex"),
+					},
 				)] : []),
 
 				/**
@@ -242,15 +255,17 @@ export class TimeStampResp {
 							idBlock: { tagClass: 3, tagNumber: 4 },
 
 							value: [new asn1js.Sequence({
-								value: getCertificateSubjectASNSequence(certs[0])
-							})]
-						})
-					]
+								value: getCertificateSubjectASNSequence(certs[0]),
+							})],
+						}),
+					],
 				}),
-			]
+			],
 		});
 
-		this.payloadDigest = createHash(signingHashAlgorithm).update(Buffer.from(payload.toBER(false))).digest();
+		this.payloadDigest = createHash(signingHashAlgorithm)
+			.update(Buffer.from(payload.toBER(false)))
+			.digest();
 
 		// --> Generating the signature
 
@@ -259,15 +274,13 @@ export class TimeStampResp {
 		let signature = Buffer.from((new asn1js.Set({
 			value: getSignedAttributes(this.payloadDigest, this.signingTime, certs),
 		}).toBER(false)));
-		this.signedDigest = createHash(signingHashAlgorithm).update(signature).digest()
+		this.signedDigest = createHash(signingHashAlgorithm).update(signature).digest();
 
 		// If the signature is generated using an external signer, the signature is filled with only
 		// the hash of the payload.
-		if (opts?.externalSignature || !key) {
-			signature = Buffer.from("00", "hex");
-		} else {
-			signature = sign(signingHashAlgorithm, signature, keyForAlg(key));
-		}
+		if (opts?.externalSignature || !key) signature = Buffer.from("00", "hex");
+		else signature = sign(signingHashAlgorithm, signature, keyForAlg(key));
+
 
 		/**
 		 * TimeStampResp ::= SEQUENCE  {
@@ -276,7 +289,7 @@ export class TimeStampResp {
 		 * }
 		 */
 
-		const TimeStampResp = new asn1js.Sequence();
+		const Resp = new asn1js.Sequence();
 
 		/**
 		 * PKIStatusInfo ::= SEQUENCE {
@@ -297,7 +310,7 @@ export class TimeStampResp {
 		 *   ... (See RFC 3161)
 		 * }
 		 */
-		TimeStampResp.valueBlock.value.push(new asn1js.Sequence({
+		Resp.valueBlock.value.push(new asn1js.Sequence({
 			value: [
 				// status
 				new asn1js.Integer({ value: 0 }),
@@ -305,7 +318,7 @@ export class TimeStampResp {
 				// new asn1js.Sequence({ value: [new asn1js.Utf8String({ value: "Granted" })] }),
 				// failInfo
 				// new asn1js.BitString({ valueHex: new ArrayBuffer(1) }),
-			]
+			],
 		})); // status
 
 		/**
@@ -313,7 +326,7 @@ export class TimeStampResp {
 		 *   -- contentType is id-signedData
 		 *   -- content is SignedData
 		 */
-		TimeStampResp.valueBlock.value.push(new asn1js.Sequence({
+		Resp.valueBlock.value.push(new asn1js.Sequence({
 			value: [
 				/**
 				 * id-signedData OBJECT IDENTIFIER ::= { iso(1) member-body(2) us(840) rsadsi(113549) pkcs(1) pkcs7(7) 2 }
@@ -358,12 +371,12 @@ export class TimeStampResp {
 									new asn1js.Sequence({
 										value: [
 											new asn1js.ObjectIdentifier({
-												value: hashAlgOID[signingHashAlgorithm]
+												value: hashAlgOID[signingHashAlgorithm],
 											}),
-											new asn1js.Null()
-										]
+											new asn1js.Null(),
+										],
 									}),
-								]
+								],
 							}),
 
 
@@ -396,9 +409,9 @@ export class TimeStampResp {
 										// Apply [0] EXPLICIT tag
 										idBlock: { tagClass: 3, tagNumber: 0 },
 
-										value: [new asn1js.OctetString({ valueHex: Buffer.from(payload.toBER(false)) })]
-									})
-								]
+										value: [new asn1js.OctetString({ valueHex: Buffer.from(payload.toBER(false)) })],
+									}),
+								],
 							}),
 
 							/**
@@ -416,11 +429,9 @@ export class TimeStampResp {
 							*/
 							...(this.certReq ? [new asn1js.Constructed({
 								idBlock: { tagClass: 3, tagNumber: 0 },
-								// @ts-ignore
 								value: certs.map(c => new asn1js.Sequence({
-									// @ts-ignore
-									value: asn1js.fromBER(c.raw).result.valueBlock.value
-								}))
+									value: asn1js.fromBER(c.raw).result.valueBlock.value,
+								})),
 							})] : []),
 
 							/**
@@ -491,11 +502,10 @@ export class TimeStampResp {
 											new asn1js.Sequence({
 												value: [
 													// issuer
-													// @ts-ignore
 													new asn1js.Sequence({ value: getCertificateIssuerASNSequence(certs[0]) }),
 													// serialNumber
-													new asn1js.Integer({ valueHex: Buffer.from(certs[0].serialNumber, "hex") })
-												]
+													new asn1js.Integer({ valueHex: Buffer.from(certs[0].serialNumber, "hex") }),
+												],
 											}),
 
 											/**
@@ -504,10 +514,10 @@ export class TimeStampResp {
 											new asn1js.Sequence({
 												value: [
 													new asn1js.ObjectIdentifier({
-														value: hashAlgOID[signingHashAlgorithm]
+														value: hashAlgOID[signingHashAlgorithm],
 													}),
-													new asn1js.Null()
-												]
+													new asn1js.Null(),
+												],
 											}),
 
 											/**
@@ -530,174 +540,41 @@ export class TimeStampResp {
 											new asn1js.Sequence({
 												value: [
 													new asn1js.ObjectIdentifier({
-														value: "1.2.840.113549.1.1.1" // rsaEncryption
+														value: "1.2.840.113549.1.1.1", // rsaEncryption
 													}),
-													new asn1js.Null()
-												]
+													new asn1js.Null(),
+												],
 											}),
 
 											/**
 											 * SignatureValue ::= OCTET STRING
 											 */
 											new asn1js.OctetString({
-												valueHex: signature
+												valueHex: signature,
 											}),
 
-										]
-									})
-								]
-							})
-						]
-					})
-					]
-				})]
+										],
+									}),
+								],
+							}),
+						],
+					}),
+					],
+				})],
 		}));
 
-		this.asn1 = TimeStampResp;
-		return Buffer.from(TimeStampResp.toBER(false));
+		this.asn1 = Resp;
+		return Buffer.from(Resp.toBER(false));
 	}
 
 	public setSignature(signature: Buffer) {
-		// @ts-ignore
 		const index1 = this.asn1.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value.length - 1;
-		// @ts-ignore
 		const index2 = this.asn1.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value[index1].valueBlock.value[0].valueBlock.value.length - 1;
 
-		// @ts-ignore
 		this.asn1.valueBlock.value[1].valueBlock.value[1].valueBlock.value[0].valueBlock.value[index1].valueBlock.value[0].valueBlock.value[index2] = new asn1js.OctetString({
-			valueHex: signature
+			valueHex: signature,
 		});
 
 		this.buffer = Buffer.from(this.asn1.toBER(false));
-
 	}
-
-}
-
-export type SignOptions = {
-	signingHashAlgorithm?: "SHA256" | "SHA384" | "SHA512",
-
-	externalSignature?: boolean
-}
-
-// ---------------------------------------------------------------------------------------------
-
-// Support functions
-
-function keyForAlg(key: KeyObject): KeyObject | SignKeyObjectInput {
-
-	if (key.asymmetricKeyType === 'rsa')
-		return key;
-	else if (key.asymmetricKeyType === 'ec')
-		return { dsaEncoding: 'ieee-p1363', key };
-
-	throw new TypeError(`key is is not supported`);
-}
-
-function getSignedAttributes(messageHash: Buffer, signingTime: Date, certs: X509Certificate[] = []) {
-	return [
-		// contentType
-		new asn1js.Sequence({
-			value: [
-				new asn1js.ObjectIdentifier({
-					value: "1.2.840.113549.1.9.3"
-				}),
-				new asn1js.Set({
-					value: [
-						new asn1js.ObjectIdentifier({
-							value: "1.2.840.113549.1.9.16.1.4" // id-ct-TSTInfo
-						}),
-					]
-				})
-			]
-		}),
-
-		// signingTime
-		new asn1js.Sequence({
-			value: [
-				new asn1js.ObjectIdentifier({
-					value: "1.2.840.113549.1.9.5"
-				}),
-				new asn1js.Set({
-					value: [
-						new asn1js.UTCTime({ valueDate: signingTime })
-					]
-				})
-			]
-		}),
-
-		// messageDigest
-		new asn1js.Sequence({
-			value: [
-				new asn1js.ObjectIdentifier({
-					value: "1.2.840.113549.1.9.4"
-				}),
-				new asn1js.Set({
-					value: [
-						new asn1js.OctetString({ valueHex: messageHash })
-					]
-				})
-			]
-		}),
-
-		// signingCertificateV2
-		// https://www.rfc-editor.org/rfc/rfc2634.html#section-5.4.1
-		/*
-			Attribute ::= SEQUENCE {
-				attrType OBJECT IDENTIFIER,
-				attrValues SET OF AttributeValue
-			}
-		*/
-		// NOTE: this is what would need to be created different in v1 or v2
-		//       v1 does not support ESSCertIDv2
-		new asn1js.Sequence({
-			value: [
-				new asn1js.ObjectIdentifier({
-					value: "1.2.840.113549.1.9.16.2.47",
-				}),
-				new asn1js.Set({
-					value: [
-						/*
-							SigningCertificateV2 ::=  SEQUENCE {
-								certs        SEQUENCE OF ESSCertIDv2,
-								policies     SEQUENCE OF PolicyInformation OPTIONAL
-							}
-						*/
-						new asn1js.Sequence({
-							value: [
-								new asn1js.Sequence({
-									value: [
-										/*
-											ESSCertIDv2 ::=  SEQUENCE {
-												hashAlgorithm           AlgorithmIdentifier
-														DEFAULT {algorithm id-sha256},
-												certHash                 Hash,
-												issuerSerial             IssuerSerial OPTIONAL
-											}
-										*/
-										new asn1js.Sequence({
-											value: [
-												new asn1js.OctetString({
-													valueHex: Buffer.from(createHash("sha256").update(certs[0].raw).digest("hex"), "hex")
-												}),
-											]
-										}),
-									]
-								}),
-							]
-						})
-					]
-				})
-			]
-		}),
-	]
-
-}
-function getCertificateIssuerASNSequence(cert: X509Certificate): any {
-	// @ts-ignore
-	return asn1js.fromBER(cert.raw).result.valueBlock.value[0].valueBlock.value[3].valueBlock.value
-}
-function getCertificateSubjectASNSequence(cert: X509Certificate): any {
-	// @ts-ignore
-	return asn1js.fromBER(cert.raw).result.valueBlock.value[0].valueBlock.value[5].valueBlock.value
 }

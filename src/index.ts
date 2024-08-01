@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-12-01 11:22
  * Edited by : Francesco
- * Edited at : 2023-12-09 23:14
+ * Edited at : 2024-07-31 19:26
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -13,12 +13,13 @@
 
 import { X509Certificate } from "crypto";
 
-// Exporting the query functions
 import { TimeStampReq } from "./query";
+import { TimeStampResp } from "./response";
+
+// Exporting the query functions
 export { TimeStampReq };
 
 // Exporting the response functions
-import { TimeStampResp } from "./response";
 export { TimeStampResp };
 
 export function parseCerts(certs: string): X509Certificate[] {
