@@ -2,7 +2,7 @@
  * Author    : Francesco
  * Created at: 2023-09-24 09:53
  * Edited by : Francesco
- * Edited at : 2023-12-30 15:42
+ * Edited at : 2024-07-31 19:59
  *
  * Copyright (c) 2023 Xevolab S.R.L.
  */
@@ -13,7 +13,7 @@ import { expect } from "chai";
 import { createHash, createPrivateKey } from "crypto";
 import fs from "fs";
 
-import { TimeStampReq, parseCerts } from "../src/index";
+import { TimeStampReq, TimeStampResp, parseCerts } from "../src/index";
 
 import { execSync as exec } from "child_process";
 
@@ -24,18 +24,19 @@ const key = createPrivateKey({
 });
 const certs = parseCerts(fs.readFileSync(__dirname + "/tsa.chain.crt", "ascii"));
 
-describe("TimeStampReq", () => {
+randomFile();
+const f = fs.readFileSync(__dirname + "/random.txt", "ascii");
 
-	randomFile();
-	const f = fs.readFileSync(__dirname + "/random.txt", "ascii");
+describe("TimeStampReq", () => {
 
 	["SHA256", "SHA384", "SHA512"].forEach((hashAlgorithm: string) => {
 		describe("Hash algorithm: " + hashAlgorithm, () => {
 
 			exec(`openssl ts -query -data test/random.txt -sha${hashAlgorithm.slice(-3).toLowerCase()} -cert -out test/random.txt_openssl_${hashAlgorithm}.tsq`);
+			console.log(`openssl ts -query -data test/random.txt -sha${hashAlgorithm.slice(-3).toLowerCase()} -cert -out test/random.txt_openssl_${hashAlgorithm}.tsq`);
+
 
 			// Grabbing nonce from OpenSSL TimeStampReq
-			exec(`openssl ts -query -in test/random.txt_openssl_${hashAlgorithm}.tsq -text`);
 			let nonce = exec(`openssl ts -query -in test/random.txt_openssl_${hashAlgorithm}.tsq -text`);
 			// @ts-ignore
 			nonce = nonce.toString().match(/Nonce: 0x([0-9A-F]+)/)?.[1];
@@ -120,6 +121,45 @@ describe("TimeStampReq", () => {
 		});
 	});
 
+
+});
+
+describe("TimeStampResp", () => {
+
+	["SHA256", "SHA384", "SHA512"].forEach((hashAlgorithm: string) => {
+		describe("Hash algorithm: " + hashAlgorithm, () => {
+
+			exec(`openssl ts -reply -queryfile test/random.txt_openssl_${hashAlgorithm}.tsq -sha${hashAlgorithm.slice(-3).toLowerCase()} -out test/random.txt_openssl_${hashAlgorithm}.tsr -config test/tsa.conf`);
+			console.log(`openssl ts -reply -queryfile test/random.txt_openssl_${hashAlgorithm}.tsq -sha${hashAlgorithm.slice(-3).toLowerCase()} -out test/random.txt_openssl_${hashAlgorithm}.tsr -config test/tsa.conf`);
+
+			describe("query from TSQ", () => {
+
+				const req = new TimeStampReq().fromDER(fs.readFileSync(__dirname + `/random.txt_openssl_${hashAlgorithm}.tsq`));
+
+				if (!req.request) throw new Error("Invalid TimeStampReq");
+
+				req.request.reqPolicy = "1.2.3.4.1";
+
+				const tsr = req.sign({ key, certs }, {});
+
+				fs.writeFileSync(__dirname + `/random.txt_${hashAlgorithm}.tsr`, tsr.buffer);
+
+				it("should return a TimeStampResp", () => {
+					expect(tsr).to.be.instanceOf(TimeStampResp);
+				})
+
+				it("should be a valid TimeStampReq according to OpenSSL", () => {
+					expect(exec(`openssl ts -reply -in test/random.txt_${hashAlgorithm}.tsr -text`)).to.not.be.instanceOf(Error);
+				})
+
+				/* it("should be equal to OpenSSL TimeStampResp", () => {
+					expect(tsr.buffer).to.be.deep.equal(fs.readFileSync(__dirname + `/random.txt_openssl_${hashAlgorithm}.tsr`));
+				}); */
+
+			});
+
+		})
+	})
 
 });
 

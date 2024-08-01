@@ -29,7 +29,7 @@
 	"scripts": {
 		"lint": "eslint src",
 		"build": "rm -rf ./dist && tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json",
-		"test": "ts-node test/test.ts"
+		"test": "tsx test/test.ts"
 	},
 	"author": "Xevolab",
 	"license": "MIT",
@@ -39,10 +39,11 @@
 	"devDependencies": {
 		"@types/chai": "^4.3.11",
 		"@types/node": "^20.3.1",
+		"@xevolab/eslint-config": "^1.1.0",
 		"chai": "^4.3.10",
 		"eslint": "^8.42.0",
 		"eslint-config-airbnb-base": "^15.0.0",
-		"ts-node": "^10.9.2",
+		"tsx": "^4.16.3",
 		"typescript": "^5.1.3"
 	}
 }

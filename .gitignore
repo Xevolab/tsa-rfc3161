@@ -130,3 +130,8 @@ dist
 .pnp.*
 
 .DS_Store
+
+
+test/*.tsq
+test/*.tsr
+random.txt

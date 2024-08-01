@@ -1,33 +1,31 @@
 /*
  * Author    : Francesco
- * Created at: 2023-06-13 21:23
+ * Created at: 2024-02-03 11:29
  * Edited by : Francesco
- * Edited at : 2023-06-13 22:12
+ * Edited at : 2024-07-31 19:25
  *
- * Copyright (c) 2023 Xevolab S.R.L.
+ * Copyright (c) 2024 Xevolab S.R.L.
  */
 
 module.exports = {
-	env: {
-		node: true,
-		commonjs: true,
-		es2021: true
-	},
-	extends: "airbnb-base",
-	overrides: [],
-	parserOptions: {
-		ecmaVersion: "latest",
-		sourceType: "module"
+	"root": true,
+	"extends": [
+		"@xevolab/eslint-config/backend",
+		"plugin:@typescript-eslint/eslint-recommended",
+		"plugin:@typescript-eslint/recommended"
+	],
+	"parser": "@typescript-eslint/parser",
+	"plugins": [
+		"@typescript-eslint"
+	],
+	"settings": {
+		"import/resolver": {
+			"node": {
+				"extensions": [".js", ".jsx", ".ts", ".tsx"]
+			}
+		}
 	},
 	rules: {
-		quotes: "off",
-		"comma-dangle": "off",
-		indent: ["error", "tab", { SwitchCase: 1 }],
-		"no-tabs": 0,
-		"padded-blocks": "off",
-		"object-curly-newline": "off",
-		"no-multiple-empty-lines": ["error", { max: 2, maxBOF: 0, maxEOF: 0 }],
-		"nonblock-statement-body-position": "off",
-		curly: ["error", "multi-or-nest", "consistent"],
+		"import/extensions": 0
 	}
-};
+}
